@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeHub Terminal — NY Open Intelligence</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  /* ============================================================
+     CONFIG: point this at YOUR backend endpoint.
+     Locally with `vercel dev` or `netlify dev` use "/api/analyze".
+     On your own host, set the full URL of your function.
+
+     >>> SQUARESPACE USERS: change the URL below to your Vercel endpoint,
+     >>> e.g. "https://ironbullfx.vercel.app/api/analyze"
+     ============================================================ */
+  :root { --api-endpoint: "https://YOUR-PROJECT.vercel.app/api/analyze"; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #e8e8f0; min-height: 100vh; }
+
+  .header { background: #0f0f1a; border-bottom: 1px solid #1e1e30; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #e8500a, #f97316); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .logo-text { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+  .logo-sub { font-size: 10px; color: #888; letter-spacing: 1px; text-transform: uppercase; }
+  .ny-countdown { background: #1a1a2e; border: 1px solid #2a2a40; border-radius: 8px; padding: 6px 14px; text-align: center; }
+  .ny-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .ny-time { font-size: 18px; font-weight: 700; color: #f97316; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+
+  .main { padding: 16px 20px; display: grid; gap: 14px; max-width: 1400px; margin: 0 auto; }
+  .instrument-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+
+  .signal-card { background: #0f0f1a; border: 1px solid #1e1e30; border-radius: 12px; padding: 14px; }
+  .signal-card.sell { border-color: rgba(220,50,50,0.4); }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .card-tag { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+  .tag-sell { background: rgba(220,50,50,0.2); color: #f87171; border: 1px solid rgba(220,50,50,0.3); }
+  .card-instrument { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  .card-via { font-size: 10px; color: #555; margin-top: 1px; }
+
+  .conviction-bar-wrap { margin: 8px 0; }
+  .conviction-label { display: flex; justify-content: space-between; font-size: 10px; color: #666; margin-bottom: 4px; }
+  .conviction-pct { font-weight: 700; color: #f87171; }
+  .bar-track { height: 4px; background: #1e1e30; border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; background: #ef4444; transition: width 1s ease; }
+
+  .levels { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .level-item { text-align: center; }
+  .level-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.8px; }
+  .level-val { font-size: 12px; font-weight: 700; margin-top: 2px; }
+  .level-val.entry { color: #e8e8f0; }
+  .level-val.stop { color: #f87171; }
+  .level-val.target { color: #4ade80; }
+
+  .signal-btn { width: 100%; margin-top: 12px; padding: 9px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; background: rgba(220,50,50,0.25); color: #f87171; border: 1px solid rgba(220,50,50,0.4); transition: opacity 0.2s; }
+  .signal-btn:hover { opacity: 0.8; }
+  .signal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .sentiment-panel { background: #0f0f1a; border: 1px solid #1e1e30; border-radius: 12px; padding: 16px; }
+  .panel-title { font-size: 12px; font-weight: 700; color: #c8c8d8; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .sentiment-score { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .big-score { font-size: 36px; font-weight: 800; color: #9ca3af; }
+  .big-score.bearish { color: #ef4444; }
+  .big-score.bullish { color: #22c55e; }
+  .score-bias { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; }
+  .score-bias.bearish { color: #ef4444; }
+  .score-bias.bullish { color: #22c55e; }
+  .score-sub { font-size: 10px; color: #555; margin-top: 2px; }
+
+  .factor-list { display: flex; flex-direction: column; gap: 5px; }
+  .factor-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: 6px; background: #0a0a0f; }
+  .factor-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; background: #6b7280; }
+  .factor-dot.bear { background: #ef4444; }
+  .factor-dot.bull { background: #22c55e; }
+  .factor-text { font-size: 11px; color: #9ca3af; line-height: 1.5; }
+
+  .analyze-btn { width: 100%; padding: 11px; background: #1a1a35; border: 1px solid #2a2a50; border-radius: 8px; color: #a78bfa; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .analyze-btn:hover { background: #22224a; }
+  .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(167,139,250,0.3); border-top-color: #a78bfa; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .streaming-text { font-size: 11px; color: #9ca3af; line-height: 1.6; padding: 8px; background: #0a0a0f; border-radius: 6px; min-height: 60px; white-space: pre-wrap; margin-top: 8px; }
+  .disclaimer { font-size: 9px; color: #333; text-align: center; padding: 8px 20px 16px; }
+  .error-banner { background: rgba(220,50,50,0.15); border: 1px solid rgba(220,50,50,0.3); color: #f87171; font-size: 11px; padding: 8px 12px; border-radius: 6px; margin-top: 8px; display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">📡</div>
+    <div>
+      <div class="logo-text">TradeHub Terminal</div>
+      <div class="logo-sub">NY Open Intelligence</div>
+    </div>
+  </div>
+  <div class="ny-countdown">
+    <div class="ny-label">NY Open in</div>
+    <div class="ny-time" id="countdown">--:--:--</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="instrument-row" id="signalCards"></div>
+
+  <div class="bottom-row">
+    <div class="sentiment-panel">
+      <div class="panel-title"><div class="live-dot"></div> Trump / Political Sentiment</div>
+      <div class="sentiment-score">
+        <div class="big-score" id="trumpScoreVal">--</div>
+        <div>
+          <div class="score-bias" id="trumpBiasLabel">Awaiting analysis</div>
+          <div class="score-sub">Truth Social + political risk</div>
+        </div>
+      </div>
+      <div class="factor-list" id="trumpFactors">
+        <div class="factor-row"><div class="factor-dot"></div><div class="factor-text">Click below to scan recent posts for market-moving themes.</div></div>
+      </div>
+      <div class="streaming-text" id="trumpStream" style="display:none"></div>
+      <button class="analyze-btn" id="btnTrump" onclick="runAnalysis('trump')"><i class="ti ti-brand-twitter"></i> Run Trump Sentiment Analysis</button>
+    </div>
+
+    <div class="sentiment-panel">
+      <div class="panel-title"><div class="live-dot" style="background:#f97316"></div> Fed / FOMC Sentiment</div>
+      <div class="sentiment-score">
+        <div class="big-score" id="fedScoreVal">--</div>
+        <div>
+          <div class="score-bias" id="fedBiasLabel">Awaiting analysis</div>
+          <div class="score-sub">Rate path · forward guidance</div>
+        </div>
+      </div>
+      <div class="factor-list" id="fedFactors">
+        <div class="factor-row"><div class="factor-dot"></div><div class="factor-text">Click below to classify the current Fed stance.</div></div>
+      </div>
+      <div class="streaming-text" id="fedStream" style="display:none"></div>
+      <button class="analyze-btn" id="btnFed" onclick="runAnalysis('fed')"><i class="ti ti-building-bank"></i> Run Fed / FOMC Analysis</button>
+    </div>
+  </div>
+
+  <div class="sentiment-panel">
+    <div class="panel-title"><div class="live-dot" style="background:#38bdf8"></div> Full NY Open Briefing</div>
+    <button class="analyze-btn" id="btnAll" onclick="runFullAnalysis()"><i class="ti ti-brain"></i> Generate Full Briefing</button>
+    <div class="streaming-text" id="briefingStream" style="display:none"></div>
+    <div class="error-banner" id="errorBanner"></div>
+  </div>
+</div>
+
+<div class="disclaimer">Not financial advice. AI-generated directional signals for educational purposes only. Always use a stop loss and confirm with your own analysis.</div>
+
+<script>
+const API_ENDPOINT = getComputedStyle(document.documentElement).getPropertyValue('--api-endpoint').trim().replace(/"/g, '') || "/api/analyze";
+
+const INSTRUMENTS = [
+  { id: 'GOLD',   label: 'GOLD',   via: 'via XAUUSD', entry: 4250.03,  stop: 4265.12,  target: 4224.88, conv: 85 },
+  { id: 'GER40',  label: 'GER40',  via: 'via DE40',   entry: 23620,    stop: 23715,    target: 23430,   conv: 85 },
+  { id: 'US30',   label: 'US30',   via: 'via DIA',    entry: 51573.21, stop: 51778.77, target: 51230.61,conv: 85 },
+  { id: 'NAS100', label: 'NAS100', via: 'via QQQ',    entry: 29693.25, stop: 29915.64, target: 29322.6, conv: 75 },
+];
+
+function buildCards() {
+  document.getElementById('signalCards').innerHTML = INSTRUMENTS.map(i => `
+    <div class="signal-card sell">
+      <div class="card-top">
+        <div>
+          <span class="card-tag tag-sell">NY OPEN · SELL BIAS</span>
+          <div class="card-instrument" style="margin-top:6px">${i.label}</div>
+          <div class="card-via">${i.via}</div>
+        </div>
+        <span style="font-size:10px;color:#ef4444;font-weight:700">🔥 High</span>
+      </div>
+      <div class="conviction-bar-wrap">
+        <div class="conviction-label"><span>Conviction</span><span class="conviction-pct">${i.conv}%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${i.conv}%"></div></div>
+      </div>
+      <div class="levels">
+        <div class="level-item"><div class="level-label">Entry</div><div class="level-val entry">${i.entry.toLocaleString()}</div></div>
+        <div class="level-item"><div class="level-label">Stop</div><div class="level-val stop">${i.stop.toLocaleString()}</div></div>
+        <div class="level-item"><div class="level-label">Target</div><div class="level-val target">${i.target.toLocaleString()}</div></div>
+      </div>
+      <button class="signal-btn" onclick="runInstrument('${i.id}')">Analyze ${i.label} Signal</button>
+    </div>
+  `).join('');
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBanner');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// Calls YOUR backend, which holds the API key and talks to Anthropic.
+async function callBackend(type, payload, onChunk, onDone) {
+  try {
+    const res = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, ...payload })
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error('Backend error ' + res.status + ': ' + t.slice(0, 200));
+    }
+    // Stream if the backend streams; otherwise read full JSON.
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('text/event-stream') || ct.includes('text/plain')) {
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let full = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        full += dec.decode(value, { stream: true });
+        onChunk(full);
+      }
+      onDone(full);
+    } else {
+      const data = await res.json();
+      const text = data.text || data.content || JSON.stringify(data);
+      onChunk(text);
+      onDone(text);
+    }
+  } catch (err) {
+    onChunk('Could not reach the analysis backend. ' + err.message);
+    onDone('');
+    showError(err.message);
+  }
+}
+
+async function runAnalysis(kind) {
+  const isTrump = kind === 'trump';
+  const btn = document.getElementById(isTrump ? 'btnTrump' : 'btnFed');
+  const stream = document.getElementById(isTrump ? 'trumpStream' : 'fedStream');
+  const factors = document.getElementById(isTrump ? 'trumpFactors' : 'fedFactors');
+  const scoreEl = document.getElementById(isTrump ? 'trumpScoreVal' : 'fedScoreVal');
+  const biasEl = document.getElementById(isTrump ? 'trumpBiasLabel' : 'fedBiasLabel');
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Analyzing...';
+  stream.style.display = 'block';
+  factors.style.display = 'none';
+  stream.textContent = '';
+
+  await callBackend(kind, {},
+    (t) => { stream.textContent = t; },
+    (full) => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-refresh"></i> Re-run Analysis';
+      parseSentiment(full, scoreEl, biasEl, factors, stream);
+    });
+}
+
+function parseSentiment(text, scoreEl, biasEl, factorsEl, streamEl) {
+  const score = (text.match(/SENTIMENT_SCORE:\s*(\d+)/) || [])[1];
+  const bias = (text.match(/BIAS:\s*(BEARISH|NEUTRAL|BULLISH)/) || [])[1] || 'NEUTRAL';
+  const factors = [...text.matchAll(/FACTOR_\d+:\s*(.+)/g)].map(m => m[1].trim());
+  const cls = bias === 'BEARISH' ? 'bearish' : bias === 'BULLISH' ? 'bullish' : '';
+  if (score) { scoreEl.textContent = score; scoreEl.className = 'big-score ' + cls; }
+  biasEl.textContent = bias === 'BEARISH' ? '▼ Bearish — Sell Bias' : bias === 'BULLISH' ? '▲ Bullish — Buy Bias' : '⚖ Neutral';
+  biasEl.className = 'score-bias ' + cls;
+  if (factors.length) {
+    factorsEl.style.display = 'flex';
+    streamEl.style.display = 'none';
+    factorsEl.innerHTML = factors.map(f => `<div class="factor-row"><div class="factor-dot ${cls === 'bearish' ? 'bear' : cls === 'bullish' ? 'bull' : ''}"></div><div class="factor-text">${f}</div></div>`).join('');
+  }
+}
+
+async function runInstrument(id) {
+  const inst = INSTRUMENTS.find(x => x.id === id);
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Analyzing...';
+  await callBackend('instrument', { instrument: id, entry: inst.entry, stop: inst.stop, target: inst.target },
+    (t) => { btn.textContent = t.slice(-40) + '...'; },
+    (full) => {
+      btn.disabled = false;
+      btn.textContent = '✓ Done — tap to view';
+      btn.onclick = () => { alert(full || 'No analysis returned.'); };
+    });
+}
+
+async function runFullAnalysis() {
+  const btn = document.getElementById('btnAll');
+  const stream = document.getElementById('briefingStream');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Generating...';
+  stream.style.display = 'block';
+  stream.textContent = '';
+  await callBackend('briefing', { instruments: INSTRUMENTS },
+    (t) => { stream.textContent = t; },
+    () => { btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Regenerate Briefing'; });
+}
+
+function updateCountdown() {
+  const now = new Date();
+  const open = new Date();
+  open.setUTCHours(13, 30, 0, 0); // 09:30 EST = 13:30 UTC
+  if (now > open) open.setUTCDate(open.getUTCDate() + 1);
+  let d = Math.max(0, open - now);
+  const h = Math.floor(d / 3600000), m = Math.floor((d % 3600000) / 60000), s = Math.floor((d % 60000) / 1000);
+  document.getElementById('countdown').textContent = [h, m, s].map(x => String(x).padStart(2, '0')).join(':');
+}
+
+buildCards();
+updateCountdown();
+setInterval(updateCountdown, 1000);
+</script>
+</body>
+</html>
