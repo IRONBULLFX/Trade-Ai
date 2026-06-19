@@ -1,12 +1,4 @@
-// ============================================================
 // TradeHub backend for NETLIFY — netlify/functions/analyze.js
-// Holds your Anthropic API key server-side. Browser never sees it.
-//
-// Required env vars (set in Netlify dashboard):
-//   ANTHROPIC_API_KEY   your sk-ant-... key
-//   ALLOWED_ORIGIN      e.g. https://terminal.ironbullfx.com  (or * for testing)
-// ============================================================
-
 const MODEL = "claude-sonnet-4-6";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 
@@ -45,8 +37,21 @@ SUMMARY: [2-sentence NY Open implication]`,
   }
   if (body.type === "instrument") {
     return {
-      system: `You are a professional technical trader. Search for the latest price action and news on the instrument, then give a sharp signal briefing in under 120 words: directional bias, key level, why the setup is valid, one risk. Be direct. ${searchRule}`,
-      user: `Analyze ${body.instrument} for the NY Open. Entry ~${body.entry}, stop ${body.stop}, target ${body.target}. Search for current ${body.instrument} news and price context, then explain the technical conviction.`,
+      system: `You are a professional technical trader producing a NY Open signal card for ${body.instrument}. Search the web for the latest ${body.instrument} price action, macro news, and market drivers, then output a signal. ${searchRule}
+Output EXACTLY this format and nothing else (no markdown, no asterisks):
+CONVICTION: [number 0-100]
+BIAS: [SELL/BUY]
+ENTRY: [price]
+STOP: [price]
+TARGET: [price]
+THESIS: [3-4 sentence technical + fundamental thesis for the NY Open]
+FACTOR_1: [specific technical/fundamental factor]
+FACTOR_2: [factor]
+FACTOR_3: [factor]
+FACTOR_4: [factor]
+FACTOR_5: [factor]
+FACTOR_6: [factor]`,
+      user: `Analyze ${body.instrument} for today's NY Open. Suggested levels to refine: entry ~${body.entry}, stop ${body.stop}, target ${body.target}. Search for current ${body.instrument} context, then give your conviction %, directional bias, refined entry/stop/target, a thesis, and 6 specific factors (e.g. VWAP, previous day high/low breaks, EMA cross, MACD, RSI, pre-market gap, macro/news drivers).`,
     };
   }
   const list = (body.instruments || [])
@@ -65,18 +70,11 @@ exports.handler = async (event) => {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
-
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers: cors, body: "" };
-  }
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, headers: cors, body: "Method not allowed" };
-  }
+  if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: cors, body: "" };
+  if (event.httpMethod !== "POST") return { statusCode: 405, headers: cors, body: "Method not allowed" };
 
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) {
-    return { statusCode: 500, headers: cors, body: "Server missing ANTHROPIC_API_KEY" };
-  }
+  if (!key) return { statusCode: 500, headers: cors, body: "Server missing ANTHROPIC_API_KEY" };
 
   let body = {};
   try { body = JSON.parse(event.body || "{}"); } catch { body = {}; }
@@ -96,13 +94,7 @@ exports.handler = async (event) => {
         max_tokens: 1024,
         system,
         messages: [{ role: "user", content: user }],
-        tools: [
-          {
-            type: "web_search_20250305",
-            name: "web_search",
-            max_uses: 2,
-          },
-        ],
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }],
       }),
     });
 
@@ -118,11 +110,7 @@ exports.handler = async (event) => {
       .join("\n")
       .trim();
 
-    return {
-      statusCode: 200,
-      headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" },
-      body: text || "No response",
-    };
+    return { statusCode: 200, headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" }, body: text || "No response" };
   } catch (err) {
     return { statusCode: 500, headers: cors, body: "Backend exception: " + (err?.message || String(err)) };
   }
