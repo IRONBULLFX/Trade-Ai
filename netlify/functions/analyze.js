@@ -5,10 +5,6 @@
 // Required env vars (set in Netlify dashboard):
 //   ANTHROPIC_API_KEY   your sk-ant-... key
 //   ALLOWED_ORIGIN      e.g. https://terminal.ironbullfx.com  (or * for testing)
-//
-// Netlify's basic functions return the full body at once (no token streaming),
-// so the dashboard shows the answer after a short pause instead of word-by-word.
-// Functionally identical result.
 // ============================================================
 
 const MODEL = "claude-sonnet-4-6";
@@ -19,8 +15,7 @@ function buildPrompt(body) {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
-  // Shared instruction: search the web for current info, never refuse for lack of data.
-  const searchRule = `IMPORTANT: Use web search to find the most recent, real information before answering. Do NOT refuse or give a "data limitation" disclaimer — search for current data instead, then base your scores on what you find. If something is genuinely unknown after searching, say so briefly in a FACTOR line but still give your best scored read. Today is ${today}.`;
+  const searchRule = `IMPORTANT: Do ONE focused web search (two at most) to find the most recent relevant info, then answer immediately — be fast, you have a 30-second limit. Do NOT refuse or give a "data limitation" disclaimer — search briefly, then base your scores on what you find. If something is unknown after searching, note it in a FACTOR line but still give your best scored read. Today is ${today}.`;
 
   if (body.type === "trump") {
     return {
@@ -71,7 +66,6 @@ exports.handler = async (event) => {
     "Access-Control-Allow-Headers": "Content-Type",
   };
 
-  // Preflight
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers: cors, body: "" };
   }
@@ -99,14 +93,14 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 2048,
+        max_tokens: 1024,
         system,
         messages: [{ role: "user", content: user }],
         tools: [
           {
             type: "web_search_20250305",
             name: "web_search",
-            max_uses: 5,
+            max_uses: 2,
           },
         ],
       }),
