@@ -61,6 +61,7 @@
   .factor-text { font-size: 11px; color: #9ca3af; line-height: 1.5; }
   .card-thesis { font-size: 11px; color: #b8b8c8; line-height: 1.6; font-style: italic; margin-top: 10px; padding: 8px; background: #0a0a0f; border-radius: 6px; }
   .card-time { font-size: 9px; color: #444; margin-top: 8px; }
+  .signal-card.loading { opacity: 0.7; }
   .analyze-btn { width: 100%; padding: 11px; background: #1a1a35; border: 1px solid #2a2a50; border-radius: 8px; color: #a78bfa; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .analyze-btn:hover { background: #22224a; }
   .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -98,10 +99,10 @@
         </div>
       </div>
       <div class="factor-list" id="trumpFactors">
-        <div class="factor-row"><div class="factor-dot"></div><div class="factor-text">Click below to scan recent posts for market-moving themes.</div></div>
+        <div class="factor-row"><div class="factor-dot"></div><div class="factor-text">Analyzing recent posts…</div></div>
       </div>
       <div class="streaming-text" id="trumpStream" style="display:none"></div>
-      <button class="analyze-btn" id="btnTrump" onclick="runAnalysis('trump')"><i class="ti ti-brand-twitter"></i> Run Trump Sentiment Analysis</button>
+      <button class="analyze-btn" id="btnTrump" onclick="runAnalysis('trump')"><i class="ti ti-brand-twitter"></i> Re-run Trump Sentiment</button>
     </div>
     <div class="sentiment-panel">
       <div class="panel-title"><div class="live-dot" style="background:#f97316"></div> Fed / FOMC Sentiment</div>
@@ -113,10 +114,10 @@
         </div>
       </div>
       <div class="factor-list" id="fedFactors">
-        <div class="factor-row"><div class="factor-dot"></div><div class="factor-text">Click below to classify the current Fed stance.</div></div>
+        <div class="factor-row"><div class="factor-dot"></div><div class="factor-text">Classifying Fed stance…</div></div>
       </div>
       <div class="streaming-text" id="fedStream" style="display:none"></div>
-      <button class="analyze-btn" id="btnFed" onclick="runAnalysis('fed')"><i class="ti ti-building-bank"></i> Run Fed / FOMC Analysis</button>
+      <button class="analyze-btn" id="btnFed" onclick="runAnalysis('fed')"><i class="ti ti-building-bank"></i> Re-run Fed / FOMC</button>
     </div>
   </div>
   <div class="sentiment-panel">
@@ -131,10 +132,10 @@
 const API_ENDPOINT = getComputedStyle(document.documentElement).getPropertyValue('--api-endpoint').trim().replace(/"/g, '') || "/api/analyze";
 
 const INSTRUMENTS = [
-  { id: 'GOLD',   label: 'GOLD',   via: 'via XAUUSD', entry: 4250.03,  stop: 4265.12,  target: 4224.88, conv: 85 },
-  { id: 'GER40',  label: 'GER40',  via: 'via DE40',   entry: 23620,    stop: 23715,    target: 23430,   conv: 85 },
-  { id: 'US30',   label: 'US30',   via: 'via DIA',    entry: 51573.21, stop: 51778.77, target: 51230.61,conv: 85 },
-  { id: 'NAS100', label: 'NAS100', via: 'via QQQ',    entry: 29693.25, stop: 29915.64, target: 29322.6, conv: 75 },
+  { id: 'GOLD',   label: 'GOLD',   via: 'via XAUUSD', entry: 4148,  stop: 4163,  target: 4120,  conv: 75 },
+  { id: 'GER40',  label: 'GER40',  via: 'via DE40',   entry: 23620, stop: 23715, target: 23430, conv: 75 },
+  { id: 'US30',   label: 'US30',   via: 'via DIA',    entry: 51448, stop: 51620, target: 51200, conv: 75 },
+  { id: 'NAS100', label: 'NAS100', via: 'via QQQ',    entry: 30300, stop: 30460, target: 30090, conv: 75 },
 ];
 
 function buildCards() {
@@ -149,8 +150,8 @@ function buildCards() {
         <span style="font-size:10px;color:#ef4444;font-weight:700">🔥 High</span>
       </div>
       <div class="conviction-bar-wrap">
-        <div class="conviction-label"><span>Conviction</span><span class="conviction-pct" id="conv-${i.id}">${i.conv}%</span></div>
-        <div class="bar-track"><div class="bar-fill" id="bar-${i.id}" style="width:${i.conv}%"></div></div>
+        <div class="conviction-label"><span>Conviction</span><span class="conviction-pct" id="conv-${i.id}">--%</span></div>
+        <div class="bar-track"><div class="bar-fill" id="bar-${i.id}" style="width:0%"></div></div>
       </div>
       <div class="levels">
         <div class="level-item"><div class="level-label">Entry</div><div class="level-val entry" id="entry-${i.id}">${i.entry.toLocaleString()}</div></div>
@@ -254,11 +255,14 @@ function parseSentiment(text, scoreEl, biasEl, factorsEl, streamEl) {
 async function runInstrument(id) {
   const inst = INSTRUMENTS.find(x => x.id === id);
   const btn = document.getElementById('btn-' + id);
+  const card = document.getElementById('card-' + id);
+  card.classList.add('loading');
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner"></div> Analyzing...';
   await callBackend('instrument', { instrument: id, entry: inst.entry, stop: inst.stop, target: inst.target },
     () => {},
     (full) => {
+      card.classList.remove('loading');
       btn.disabled = false;
       btn.innerHTML = '<i class="ti ti-refresh"></i> Re-analyze ' + inst.label;
       renderCard(id, full);
@@ -325,9 +329,18 @@ function updateCountdown() {
   document.getElementById('countdown').textContent = [h, m, s].map(x => String(x).padStart(2, '0')).join(':');
 }
 
+async function autoRunAll() {
+  await runAnalysis('trump');
+  await runAnalysis('fed');
+  for (const inst of INSTRUMENTS) {
+    await runInstrument(inst.id);
+  }
+}
+
 buildCards();
 updateCountdown();
 setInterval(updateCountdown, 1000);
+setTimeout(autoRunAll, 400);
 </script>
 </body>
 </html>
