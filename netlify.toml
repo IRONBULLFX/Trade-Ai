@@ -1,0 +1,13 @@
+# Netlify configuration for TradeHub
+# Serves index.html at the site root and exposes the function at /api/analyze.
+
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Make the function reachable at /api/analyze (matches the dashboard's endpoint path)
+[[redirects]]
+  from = "/api/analyze"
+  to = "/.netlify/functions/analyze"
+  status = 200
+  force = true
