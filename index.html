@@ -6,19 +6,9 @@
 <title>TradeHub Terminal — NY Open Intelligence</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
-  /* ============================================================
-     CONFIG: point this at YOUR backend endpoint.
-     Locally with `vercel dev` or `netlify dev` use "/api/analyze".
-     On your own host, set the full URL of your function.
-
-     >>> SQUARESPACE USERS: change the URL below to your Vercel endpoint,
-     >>> e.g. "https://ironbullfx.vercel.app/api/analyze"
-     ============================================================ */
   :root { --api-endpoint: "/api/analyze"; }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #e8e8f0; min-height: 100vh; }
-
   .header { background: #0f0f1a; border-bottom: 1px solid #1e1e30; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
   .logo { display: flex; align-items: center; gap: 10px; }
   .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #e8500a, #f97316); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
@@ -27,10 +17,8 @@
   .ny-countdown { background: #1a1a2e; border: 1px solid #2a2a40; border-radius: 8px; padding: 6px 14px; text-align: center; }
   .ny-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
   .ny-time { font-size: 18px; font-weight: 700; color: #f97316; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
-
   .main { padding: 16px 20px; display: grid; gap: 14px; max-width: 1400px; margin: 0 auto; }
   .instrument-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
-
   .signal-card { background: #0f0f1a; border: 1px solid #1e1e30; border-radius: 12px; padding: 14px; }
   .signal-card.sell { border-color: rgba(220,50,50,0.4); }
   .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
@@ -38,13 +26,11 @@
   .tag-sell { background: rgba(220,50,50,0.2); color: #f87171; border: 1px solid rgba(220,50,50,0.3); }
   .card-instrument { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
   .card-via { font-size: 10px; color: #555; margin-top: 1px; }
-
   .conviction-bar-wrap { margin: 8px 0; }
   .conviction-label { display: flex; justify-content: space-between; font-size: 10px; color: #666; margin-bottom: 4px; }
   .conviction-pct { font-weight: 700; color: #f87171; }
   .bar-track { height: 4px; background: #1e1e30; border-radius: 2px; overflow: hidden; }
   .bar-fill { height: 100%; border-radius: 2px; background: #ef4444; transition: width 1s ease; }
-
   .levels { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
   .level-item { text-align: center; }
   .level-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.8px; }
@@ -52,17 +38,14 @@
   .level-val.entry { color: #e8e8f0; }
   .level-val.stop { color: #f87171; }
   .level-val.target { color: #4ade80; }
-
   .signal-btn { width: 100%; margin-top: 12px; padding: 9px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; background: rgba(220,50,50,0.25); color: #f87171; border: 1px solid rgba(220,50,50,0.4); transition: opacity 0.2s; }
   .signal-btn:hover { opacity: 0.8; }
   .signal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
   .bottom-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
   .sentiment-panel { background: #0f0f1a; border: 1px solid #1e1e30; border-radius: 12px; padding: 16px; }
   .panel-title { font-size: 12px; font-weight: 700; color: #c8c8d8; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
   .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
   .sentiment-score { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
   .big-score { font-size: 36px; font-weight: 800; color: #9ca3af; }
   .big-score.bearish { color: #ef4444; }
@@ -71,14 +54,12 @@
   .score-bias.bearish { color: #ef4444; }
   .score-bias.bullish { color: #22c55e; }
   .score-sub { font-size: 10px; color: #555; margin-top: 2px; }
-
   .factor-list { display: flex; flex-direction: column; gap: 5px; }
   .factor-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: 6px; background: #0a0a0f; }
   .factor-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; background: #6b7280; }
   .factor-dot.bear { background: #ef4444; }
   .factor-dot.bull { background: #22c55e; }
   .factor-text { font-size: 11px; color: #9ca3af; line-height: 1.5; }
-
   .analyze-btn { width: 100%; padding: 11px; background: #1a1a35; border: 1px solid #2a2a50; border-radius: 8px; color: #a78bfa; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .analyze-btn:hover { background: #22224a; }
   .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -90,7 +71,6 @@
 </style>
 </head>
 <body>
-
 <div class="header">
   <div class="logo">
     <div class="logo-icon">📡</div>
@@ -104,10 +84,8 @@
     <div class="ny-time" id="countdown">--:--:--</div>
   </div>
 </div>
-
 <div class="main">
   <div class="instrument-row" id="signalCards"></div>
-
   <div class="bottom-row">
     <div class="sentiment-panel">
       <div class="panel-title"><div class="live-dot"></div> Trump / Political Sentiment</div>
@@ -124,7 +102,6 @@
       <div class="streaming-text" id="trumpStream" style="display:none"></div>
       <button class="analyze-btn" id="btnTrump" onclick="runAnalysis('trump')"><i class="ti ti-brand-twitter"></i> Run Trump Sentiment Analysis</button>
     </div>
-
     <div class="sentiment-panel">
       <div class="panel-title"><div class="live-dot" style="background:#f97316"></div> Fed / FOMC Sentiment</div>
       <div class="sentiment-score">
@@ -141,7 +118,6 @@
       <button class="analyze-btn" id="btnFed" onclick="runAnalysis('fed')"><i class="ti ti-building-bank"></i> Run Fed / FOMC Analysis</button>
     </div>
   </div>
-
   <div class="sentiment-panel">
     <div class="panel-title"><div class="live-dot" style="background:#38bdf8"></div> Full NY Open Briefing</div>
     <button class="analyze-btn" id="btnAll" onclick="runFullAnalysis()"><i class="ti ti-brain"></i> Generate Full Briefing</button>
@@ -149,9 +125,7 @@
     <div class="error-banner" id="errorBanner"></div>
   </div>
 </div>
-
 <div class="disclaimer">Not financial advice. AI-generated directional signals for educational purposes only. Always use a stop loss and confirm with your own analysis.</div>
-
 <script>
 const API_ENDPOINT = getComputedStyle(document.documentElement).getPropertyValue('--api-endpoint').trim().replace(/"/g, '') || "/api/analyze";
 
@@ -193,7 +167,6 @@ function showError(msg) {
   el.style.display = 'block';
 }
 
-// Calls YOUR backend, which holds the API key and talks to Anthropic.
 async function callBackend(type, payload, onChunk, onDone) {
   try {
     const res = await fetch(API_ENDPOINT, {
@@ -205,7 +178,6 @@ async function callBackend(type, payload, onChunk, onDone) {
       const t = await res.text();
       throw new Error('Backend error ' + res.status + ': ' + t.slice(0, 200));
     }
-    // Stream if the backend streams; otherwise read full JSON.
     const ct = res.headers.get('content-type') || '';
     if (ct.includes('text/event-stream') || ct.includes('text/plain')) {
       const reader = res.body.getReader();
@@ -255,12 +227,18 @@ async function runAnalysis(kind) {
 }
 
 function parseSentiment(text, scoreEl, biasEl, factorsEl, streamEl) {
-  const score = (text.match(/SENTIMENT_SCORE:\s*(\d+)/) || [])[1];
-  const bias = (text.match(/BIAS:\s*(BEARISH|NEUTRAL|BULLISH)/) || [])[1] || 'NEUTRAL';
-  const factors = [...text.matchAll(/FACTOR_\d+:\s*(.+)/g)].map(m => m[1].trim());
-  const cls = bias === 'BEARISH' ? 'bearish' : bias === 'BULLISH' ? 'bullish' : '';
-  if (score) { scoreEl.textContent = score; scoreEl.className = 'big-score ' + cls; }
-  biasEl.textContent = bias === 'BEARISH' ? '▼ Bearish — Sell Bias' : bias === 'BULLISH' ? '▲ Bullish — Buy Bias' : '⚖ Neutral';
+  const clean = text.replace(/\*+/g, '').replace(/^#+\s*/gm, '');
+  const score = (clean.match(/SENTIMENT[_\s]?SCORE\s*[:\-]?\s*(\d+)/i) || [])[1];
+  const bias = (clean.match(/BIAS\s*[:\-]?\s*(BEARISH|NEUTRAL|BULLISH)/i) || [])[1] || 'NEUTRAL';
+  const factors = [...clean.matchAll(/FACTOR[_\s]?\d+\s*[:\-]?\s*(.+)/gi)]
+    .map(m => m[1].replace(/\*+/g, '').trim())
+    .filter(Boolean);
+  const cls = bias.toUpperCase() === 'BEARISH' ? 'bearish' : bias.toUpperCase() === 'BULLISH' ? 'bullish' : '';
+  if (score) {
+    scoreEl.textContent = score;
+    scoreEl.className = 'big-score ' + cls;
+  }
+  biasEl.textContent = cls === 'bearish' ? '▼ Bearish — Sell Bias' : cls === 'bullish' ? '▲ Bullish — Buy Bias' : '⚖ Neutral';
   biasEl.className = 'score-bias ' + cls;
   if (factors.length) {
     factorsEl.style.display = 'flex';
@@ -298,7 +276,7 @@ async function runFullAnalysis() {
 function updateCountdown() {
   const now = new Date();
   const open = new Date();
-  open.setUTCHours(13, 30, 0, 0); // 09:30 EST = 13:30 UTC
+  open.setUTCHours(13, 30, 0, 0);
   if (now > open) open.setUTCDate(open.getUTCDate() + 1);
   let d = Math.max(0, open - now);
   const h = Math.floor(d / 3600000), m = Math.floor((d % 3600000) / 60000), s = Math.floor((d % 60000) / 1000);
