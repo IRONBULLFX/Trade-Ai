@@ -19,44 +19,47 @@ function buildPrompt(body) {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
+  // Shared instruction: search the web for current info, never refuse for lack of data.
+  const searchRule = `IMPORTANT: Use web search to find the most recent, real information before answering. Do NOT refuse or give a "data limitation" disclaimer — search for current data instead, then base your scores on what you find. If something is genuinely unknown after searching, say so briefly in a FACTOR line but still give your best scored read. Today is ${today}.`;
+
   if (body.type === "trump") {
     return {
-      system: `You are a senior macro trader. You analyze Donald Trump's Truth Social posts and political statements for market impact (NAS100, US30, GER40, GOLD). Output EXACTLY this format:
+      system: `You are a senior macro trader. You analyze Donald Trump's recent Truth Social posts and political statements for market impact (NAS100, US30, GER40, GOLD). ${searchRule}
+Output EXACTLY this format and nothing else:
 SENTIMENT_SCORE: [1-100, 1=very bearish, 50=neutral, 100=very bullish]
 BIAS: [BEARISH/NEUTRAL/BULLISH]
 FACTOR_1: [specific factor + market impact]
 FACTOR_2: [specific factor + market impact]
 FACTOR_3: [specific factor + market impact]
-SUMMARY: [2-sentence NY Open implication]
-Today is ${today}.`,
-      user: `Analyze likely Trump political sentiment impact for today's NY Open. Consider tariffs, dollar comments, Fed pressure, energy policy, geopolitics. Score it and give 3 specific factors.`,
+SUMMARY: [2-sentence NY Open implication]`,
+      user: `Search for Trump's latest political/market-relevant statements and news, then analyze the likely sentiment impact for today's NY Open. Consider tariffs, dollar comments, Fed pressure, energy policy, geopolitics. Score it and give 3 specific factors.`,
     };
   }
   if (body.type === "fed") {
     return {
-      system: `You are a senior macro trader. You analyze Federal Reserve / FOMC communications for market impact (NAS100, US30, GER40, GOLD). Output EXACTLY this format:
+      system: `You are a senior macro trader. You analyze the latest Federal Reserve / FOMC communications for market impact (NAS100, US30, GER40, GOLD). ${searchRule}
+Output EXACTLY this format and nothing else:
 SENTIMENT_SCORE: [1-100]
 BIAS: [BEARISH/NEUTRAL/BULLISH]
 FACTOR_1: [factor + impact]
 FACTOR_2: [factor + impact]
 FACTOR_3: [factor + impact]
-SUMMARY: [2-sentence NY Open implication]
-Today is ${today}.`,
-      user: `Analyze the current Fed / FOMC stance for today's NY Open. Consider rate path, hawkish vs dovish tone, forward guidance, inflation vs growth. Score the market impact and give 3 factors.`,
+SUMMARY: [2-sentence NY Open implication]`,
+      user: `Search for the most recent Fed / FOMC news, the current Fed Funds rate, latest dot plot, and recent Fed speaker comments, then analyze the stance for today's NY Open. Score the market impact and give 3 factors.`,
     };
   }
   if (body.type === "instrument") {
     return {
-      system: `You are a professional technical trader. Give a sharp signal briefing in under 120 words: directional bias, key level, why the setup is valid, one risk. Be direct.`,
-      user: `Today is ${today}. Analyze ${body.instrument} for the NY Open. Entry ~${body.entry}, stop ${body.stop}, target ${body.target}. Explain the technical conviction.`,
+      system: `You are a professional technical trader. Search for the latest price action and news on the instrument, then give a sharp signal briefing in under 120 words: directional bias, key level, why the setup is valid, one risk. Be direct. ${searchRule}`,
+      user: `Analyze ${body.instrument} for the NY Open. Entry ~${body.entry}, stop ${body.stop}, target ${body.target}. Search for current ${body.instrument} news and price context, then explain the technical conviction.`,
     };
   }
   const list = (body.instruments || [])
     .map((i) => `${i.label} (entry ~${i.entry}, conviction ${i.conv}%)`)
     .join(", ");
   return {
-    system: `You are the lead analyst at a trading signals firm. Produce a concise pre-market NY Open briefing for professional traders. Max 250 words.`,
-    user: `Today is ${today}. Generate the full NY Open briefing for: ${list}. Cover macro environment, per-instrument key levels, the main risk to the thesis, and one sentence on what would flip the bias. Be specific and actionable.`,
+    system: `You are the lead analyst at a trading signals firm. Search for current market and macro news, then produce a concise pre-market NY Open briefing for professional traders. Max 250 words. ${searchRule}`,
+    user: `Generate the full NY Open briefing for: ${list}. Search for today's macro/market news first. Cover macro environment, per-instrument key levels, the main risk to the thesis, and one sentence on what would flip the bias. Be specific and actionable.`,
   };
 }
 
@@ -96,9 +99,16 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1024,
+        max_tokens: 2048,
         system,
         messages: [{ role: "user", content: user }],
+        tools: [
+          {
+            type: "web_search_20250305",
+            name: "web_search",
+            max_uses: 5,
+          },
+        ],
       }),
     });
 
@@ -109,8 +119,9 @@ exports.handler = async (event) => {
 
     const data = await upstream.json();
     const text = (data.content || [])
-      .map((b) => (b.type === "text" ? b.text : ""))
-      .join("")
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("\n")
       .trim();
 
     return {
